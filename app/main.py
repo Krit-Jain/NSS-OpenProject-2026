@@ -21,3 +21,13 @@ from app.auth.models import User
 
 Base.metadata.create_all(bind=engine)
 
+# Registering the router(User level)
+from app.users.router import router as user_router
+
+app.include_router(user_router)
+
+# Registering admin router
+from app.admin.router import router as admin_router
+
+app.include_router(admin_router)
+
