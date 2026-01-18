@@ -6,9 +6,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-@app.on_event("startup")
-def on_startup():
-    init_db()
+# @app.on_event("startup")
+# def on_startup():
+#     init_db()
 
 @app.get("/")
 def root():
@@ -25,8 +25,6 @@ from app.database.database import engine
 from app.database.base import Base
 from app.auth.models import User
 
-Base.metadata.create_all(bind=engine)
-
 # Registering the router(User level)
 from app.users.router import router as user_router
 
@@ -40,3 +38,7 @@ app.include_router(admin_router)
 # Creating tables
 from app.users.models import RegistrationDetails
 
+# Register Donation
+from app.donations.router import router as donation_router
+
+app.include_router(donation_router)
