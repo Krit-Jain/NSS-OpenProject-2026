@@ -42,3 +42,8 @@ from app.users.models import RegistrationDetails
 from app.donations.router import router as donation_router
 
 app.include_router(donation_router)
+
+# Register webhook router
+from app.webhooks.payment import router as webhook_router
+
+app.include_router(webhook_router)

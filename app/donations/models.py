@@ -20,3 +20,6 @@ class Donation(Base):
     payment_reference = Column(String, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+refund_reason = Column(String, nullable=True)
+refunded_at = Column(DateTime, nullable=True)

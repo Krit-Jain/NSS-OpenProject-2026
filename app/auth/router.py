@@ -1,5 +1,5 @@
 # Registration API
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -8,7 +8,10 @@ from app.auth import schemas, models, utils
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/register")
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED
+)
 def register_user(user: schemas.UserRegister, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
