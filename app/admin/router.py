@@ -2,10 +2,14 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime
+import csv
+from fastapi.responses import StreamingResponse
+from io import StringIO
 
 from app.database.database import get_db
 from app.auth.dependencies import require_admin
 from app.donations.models import Donation
+from app.users.models import RegistrationDetails
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -109,3 +113,71 @@ def top_ngos(
     )
 
     return results
+
+# Total registrations count
+@router.get("/registrations/count")
+def get_total_registrations(
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin)
+):
+    total = db.query(func.count(RegistrationDetails.id)).scalar()
+    return {"total_registrations": total}
+
+# Filter Registrations
+@router.get("/registrations")
+def list_registrations(
+    city: str | None = Query(None),
+    state: str | None = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin)
+):
+    query = db.query(RegistrationDetails)
+
+    if city:
+        query = query.filter(RegistrationDetails.city == city)
+
+    if state:
+        query = query.filter(RegistrationDetails.state == state)
+
+    if start_date:
+        query = query.filter(RegistrationDetails.created_at >= start_date)
+
+    if end_date:
+        query = query.filter(RegistrationDetails.created_at <= end_date)
+
+    return query.order_by(RegistrationDetails.created_at.desc()).all()
+
+# Export Registration Data
+@router.get("/registrations/export")
+def export_registrations(
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin)
+):
+    registrations = db.query(RegistrationDetails).all()
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    # CSV Header
+    writer.writerow([
+        "id", "user_id", "full_name", "phone",
+        "address", "city", "state", "created_at"
+    ])
+
+    for r in registrations:
+        writer.writerow([
+            r.id, r.user_id, r.full_name, r.phone,
+            r.address, r.city, r.state, r.created_at
+        ])
+
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=registrations.csv"
+        }
+    )
