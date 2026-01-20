@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:15
+    container_name: ngo_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ngo_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ngo_donation_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ngo_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: ngo_fastapi
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "
+      alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
+
+volumes:
+  postgres_data:

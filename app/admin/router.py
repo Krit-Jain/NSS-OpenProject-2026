@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func,cast,Date
 from datetime import datetime
 import csv
 from fastapi.responses import StreamingResponse
@@ -181,3 +181,28 @@ def export_registrations(
             "Content-Disposition": "attachment; filename=registrations.csv"
         }
     )
+
+# Daily donation analytics
+@router.get("/analytics/daily")
+def daily_donations(
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin)
+):
+    results = (
+        db.query(
+            cast(Donation.created_at, Date).label("date"),
+            func.sum(Donation.amount).label("total_amount")
+        )
+        .filter(Donation.status == "SUCCESS")
+        .group_by(cast(Donation.created_at, Date))
+        .order_by(cast(Donation.created_at, Date))
+        .all()
+    )
+
+    return [
+        {
+            "date": r.date.isoformat(),
+            "total_amount": float(r.total_amount)
+        }
+        for r in results
+    ]
